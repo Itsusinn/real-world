@@ -5,6 +5,7 @@ mod bindings {
 pub use bindings::*;
 use std::ops::Deref;
 use std::rc::Rc;
+pub use bindings::Gl as InnerGl;
 
 #[derive(Clone)]
 pub struct Gl {

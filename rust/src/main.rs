@@ -1,12 +1,13 @@
 extern crate gl;
 extern crate sdl2;
 
-pub mod render_gl;
+use std::ffi::CString;
+use std::rc::Rc;
 
 use gl::types::*;
 use sdl2::{event::Event, keyboard::Keycode};
-use std::ffi::CString;
-use std::rc::Rc;
+
+pub mod render_gl;
 
 fn main() {
     let sdl_context = sdl2::init().unwrap();
@@ -25,9 +26,11 @@ fn main() {
         .unwrap();
 
     let _gl_context = window.gl_create_context().unwrap();
-    let gl: Rc<gl::Gl> = Rc::new(gl::Gl::load_with(|s| {
-        video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void
-    }));
+    let gl: Rc<gl::Gl> = Rc::new(
+        gl::Gl::load_with(|s| {
+            video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void
+        })
+    );
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     unsafe {
@@ -35,16 +38,14 @@ fn main() {
         gl.ClearColor(0.3, 0.3, 0.5, 1.0);
     }
 
-    let vert_shader = render_gl::Shader::from_vert_source(
-        &gl,
+    let vert_shader = render_gl::Shader::from_vert_source(&gl,
         &CString::new(include_str!("assets/shaders/1.vert.glsl")).unwrap(),
-    )
-    .unwrap();
-    let frag_shader = render_gl::Shader::from_frag_source(
-        &gl,
+    ).unwrap();
+
+    let frag_shader = render_gl::Shader::from_frag_source(&gl,
         &CString::new(include_str!("assets/shaders/1.frag.glsl")).unwrap(),
-    )
-    .unwrap();
+    ).unwrap();
+
     let shader_program =
         render_gl::Program::from_shaders(&gl, &[vert_shader, frag_shader]).unwrap();
     shader_program.set_used();
@@ -78,11 +79,11 @@ fn main() {
 
         gl.EnableVertexAttribArray(0);
         gl.VertexAttribPointer(
-            0,                                         // index of attribute
-            3,                                         // the number of components per attribute
-            gl::FLOAT,                                 // data type
-            gl::FALSE,                                 // normalized
-            (6 * std::mem::size_of::<f32>()) as GLint, // stride (byte offset)
+            0,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            (6 * std::mem::size_of::<f32>()) as GLint,
             std::ptr::null(),
         );
 
