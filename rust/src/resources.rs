@@ -1,7 +1,6 @@
 use std::path::{Path, PathBuf};
 use std::fs;
 use std::io::{self, Read};
-use std::ffi;
 use std::ffi::CString;
 
 //
@@ -44,16 +43,16 @@ impl Resources {
       resource_name: &str
    ) -> Result<CString, Error> {
       let mut file = fs::File::open(
-         self.root_path.join(resource_name)
+         resource_name_to_path(&self.root_path,resource_name)
       )?;
 
       let mut buffer = Vec::with_capacity(
          file.metadata()?.len() as usize + 1
       );
-      file.read_to_end(&mut buffer);
+      file.read_to_end(&mut buffer)?;
 
       // check for nul byte
-      if buffer.iter().find(|i| **i == 0 ).is_some() {
+      if buffer.iter().any(|i| *i == 0) {
          return Err(Error::FileContainsNil);
       }
 
@@ -67,7 +66,7 @@ fn resource_name_to_path(
 ) -> PathBuf {
    let mut path:PathBuf = root_dir.into();
 
-   for part in location.split("/") {
+   for part in location.split('/') {
       // path.join(part)
       path = path.join(part)
    }

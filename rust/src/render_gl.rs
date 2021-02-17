@@ -1,8 +1,15 @@
-use gl;
 use gl::types::*;
-use std;
 use std::ffi::{CStr, CString};
 use crate::resources::Resources;
+use crate::resources;
+
+#[derive(Debug)]
+pub enum Error {
+    ResourceLoad { name: String, inner: resources::Error },
+    CanNotDetermineShaderTypeForResource { name: String },
+    CompileError { name: String, message: String },
+    LinkError { name: String, message: String },
+}
 
 //
 //  **********Program
@@ -16,7 +23,7 @@ impl Program {
         gl:&gl::Gl,
         res:&Resources,
         name:&str
-    ) -> Result<Program, String> {
+    ) -> Result<Program, Error> {
         const POSSIBLE_EXT: [&str; 2] = [
             ".vert",
             ".frag",
@@ -29,12 +36,11 @@ impl Program {
                    &format!("{}{}", name, file_extension)
                )
            })
-           .collect::<Result<Vec<Shader>, String>>()?;
-
-        Program::from_shaders(gl,&shaders[..])
+           .collect::<Result<Vec<Shader>, Error>>()?;
+        Ok(Program::from_shaders(gl,&shaders[..])?)
     }
 
-    pub fn from_shaders(gl: &gl::Gl, shaders: &[Shader]) -> Result<Program, String> {
+    pub fn from_shaders(gl: &gl::Gl, shaders: &[Shader]) -> Result<Program, Error> {
         let program_id = unsafe { gl.CreateProgram() };
         for shader in shaders {
             unsafe { gl.AttachShader(program_id, shader.id) };
@@ -65,7 +71,11 @@ impl Program {
                 );
             }
 
-            return Err(error.to_string_lossy().into_owned());
+            return Err(Error::LinkError {
+                // TODO
+                name: String::from("TODO"),
+                message:error.to_string_lossy().into_owned()
+            });
         }
         Ok(Program {
             gl: gl.clone(),
@@ -99,7 +109,7 @@ impl Shader {
         gl:&gl::Gl,
         res:&Resources,
         name:&str
-    ) -> Result<Shader, String> {
+    ) -> Result<Shader, Error> {
         const POSSIBLE_EXT:[(&str,GLenum);2] = [
             (".vert",gl::VERTEX_SHADER),
             (".frag",gl::FRAGMENT_SHADER)
@@ -110,10 +120,18 @@ impl Shader {
                name.ends_with(file_extension)
            })
            .map(|&(_,kind) | kind)
-           .ok_or_else(|| format!("Can not determine shader type for resource {}", name))?;
+           .ok_or_else( || Error::CanNotDetermineShaderTypeForResource {
+               name: format!("Can not determine shader type for resource {}", name)
+           })?;
 
         let source = res.load_cstring(name)
-           .map_err(|e| format!("Error loading resource {}: {:?}", name, e))?;
+           .map_err( |e|
+              // TODO
+              Error::ResourceLoad {
+                  name: String::from("TODO"),
+                  inner: e
+              }
+           )?;
 
         Shader::from_source(gl,&source,shader_kind)
     }
@@ -126,16 +144,16 @@ impl Shader {
         gl: &gl::Gl,
         source: &CStr,
         kind: gl::types::GLenum,
-    ) -> Result<Shader, String> {
+    ) -> Result<Shader, Error> {
         let id = shader_from_source(&gl, source, kind)?;
         Ok(Shader { gl: gl.clone(), id })
     }
 
-    pub fn from_vert_source(gl: &gl::Gl, source: &CStr) -> Result<Shader, String> {
+    pub fn from_vert_source(gl: &gl::Gl, source: &CStr) -> Result<Shader, Error> {
         Shader::from_source(gl, source, gl::VERTEX_SHADER)
     }
 
-    pub fn from_frag_source(gl: &gl::Gl, source: &CStr) -> Result<Shader, String> {
+    pub fn from_frag_source(gl: &gl::Gl, source: &CStr) -> Result<Shader, Error> {
         Shader::from_source(gl, source, gl::FRAGMENT_SHADER)
     }
 }
@@ -150,7 +168,7 @@ fn shader_from_source(
     gl: &gl::Gl,
     source: &CStr,
     kind: gl::types::GLenum,
-) -> Result<gl::types::GLuint, String> {
+) -> Result<gl::types::GLuint, Error> {
     let id = unsafe { gl.CreateShader(kind) };
 
     unsafe {
@@ -172,14 +190,15 @@ fn shader_from_source(
         let error = create_whitespace_cstring_with_len(len as usize);
 
         unsafe {
-            gl.GetShaderInfoLog(
-                id,
-                len,
-                std::ptr::null_mut(),
-                error.as_ptr() as *mut gl::types::GLchar,
-            );
+            gl.GetShaderInfoLog(id, len, std::ptr::null_mut(), error.as_ptr() as *mut gl::types::GLchar, );
         }
-        return Err(error.to_string_lossy().into_owned());
+        return Err(
+            // todo
+            Error::CompileError {
+                name: String::from("todo"),
+                message:error.to_string_lossy().into_owned()
+            }
+        );
     }
     Ok(id)
 }

@@ -1,7 +1,6 @@
 extern crate gl;
 extern crate sdl2;
 
-use std::ffi::CString;
 use std::rc::Rc;
 
 use gl::types::*;
