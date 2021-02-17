@@ -6,10 +6,17 @@ use std::rc::Rc;
 
 use gl::types::*;
 use sdl2::{event::Event, keyboard::Keycode};
+use crate::resources::Resources;
+use std::path::Path;
 
 pub mod render_gl;
+pub mod resources;
 
 fn main() {
+    let res =
+       Resources::from_relative_exe_path(
+           Path::new("assets")
+       ).unwrap();
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
@@ -38,16 +45,10 @@ fn main() {
         gl.ClearColor(0.3, 0.3, 0.5, 1.0);
     }
 
-    let vert_shader = render_gl::Shader::from_vert_source(&gl,
-        &CString::new(include_str!("assets/shaders/1.vert.glsl")).unwrap(),
-    ).unwrap();
-
-    let frag_shader = render_gl::Shader::from_frag_source(&gl,
-        &CString::new(include_str!("assets/shaders/1.frag.glsl")).unwrap(),
-    ).unwrap();
-
     let shader_program =
-        render_gl::Program::from_shaders(&gl, &[vert_shader, frag_shader]).unwrap();
+        render_gl::Program::from_res(
+            &gl, &res,"shaders/1"
+        ).unwrap();
     shader_program.set_used();
 
     let vertices: Vec<f32> = vec![
@@ -72,8 +73,6 @@ fn main() {
     let mut vao: GLuint = 0;
     unsafe {
         gl.GenVertexArrays(1, &mut vao);
-    }
-    unsafe {
         gl.BindVertexArray(vao);
         gl.BindBuffer(gl::ARRAY_BUFFER, vbo);
 
