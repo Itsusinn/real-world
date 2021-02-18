@@ -1,0 +1,3 @@
+[submodule "rust/another"]
+	path = rust/another
+	url = https://github.com/Itsusinn/another
